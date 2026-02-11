@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DECORMIND AI — I18n ARCHITECTURE SYSTEM</title>
+    <style>
+        /* --- RESET & VARIABLES --- */
+        :root {
+            --primary-blue: #0056b3;
+            --secondary-blue: #007bff;
+            --light-blue: #e3f2fd;
+            --dark-blue: #003d80;
+            --white: #ffffff;
+            --bg-body: #f4f6f9;
+            --bg-card: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #dee2e6;
+            --success: #28a745;
+            --danger: #dc3545;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 260px;
+        }
+
+        /* DARK MODE OVERRIDES */
+        [data-theme="dark"] {
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border-color: #333333;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            --primary-blue: #4dabf7;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- UTILITIES --- */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .center { align-items: center; justify-content: center; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .btn-primary { background-color: var(--primary-blue); color: var(--white); }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-outline {
+            border: 1px solid var(--primary-blue);
+            color: var(--primary-blue);
+            background: transparent;
+        }
+        .btn-outline:hover { background-color: rgba(0,86,179,0.1); }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* --- TOAST NOTIFICATIONS --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        .toast {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-blue);
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+            min-width: 250px;
+            color: var(--text-main);
+        }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.success { border-left-color: var(--success); }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* --- LOGIN VIEW --- */
+        #view-login {
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--light-blue) 0%, var(--bg-body) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-y: auto;
+        }
+        .login-bg-img {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; opacity: 0.1; z-index: 0;
+        }
+        .login-container {
+            position: relative; z-index: 1; width: 450px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,86,179,0.15);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        .login-logo-img { width: 180px; margin-bottom: 20px; }
+        .login-subtitle { color: var(--text-muted); margin-bottom: 30px; font-size: 14px; }
+        
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--text-main); font-weight: 500; }
+        .form-control {
+            width: 100%; padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border 0.2s;
+            background: var(--bg-card);
+            color: var(--text-main);
+        }
+        .form-control:focus { border-color: var(--primary-blue); outline: none; box-shadow: 0 0 0 3px rgba(0,86,179,0.1); }
+        .login-btn { width: 100%; padding: 14px; font-size: 16px; margin-top: 10px; }
+
+        /* --- APP LAYOUT --- */
+        #app-container { display: flex; height: 100vh; }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .brand { padding: 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-color); height: 80px; }
+        .brand img { max-width: 100%; max-height: 50px; object-fit: contain; }
+        
+        .nav-menu { flex: 1; padding: 20px 0; overflow-y: auto; }
+        .nav-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(0,86,179,0.1);
+            color: var(--primary-blue);
+            border-right: 3px solid var(--primary-blue);
+        }
+
+        .user-profile {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .user-info div:first-child { font-weight: 600; font-size: 14px; }
+        .user-info div:last-child { font-size: 12px; color: var(--success); }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            background: var(--bg-body);
+            overflow-y: auto;
+            position: relative;
+        }
+        .top-bar {
+            height: 60px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+        .page-title { font-size: 18px; font-weight: 600; color: var(--text-main); }
+        .action-area { display: flex; gap: 10px; }
+
+        .content-scroll { padding: 30px; max-width: 1600px; margin: 0 auto; }
+
+        /* --- INPUT VIEW --- */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .input-section-title {
+            grid-column: 1 / -1;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-top: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        /* --- SETTINGS VIEW --- */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 30px;
+            align-items: start;
+        }
+        .settings-column {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .col-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .theme-option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--text-main);
+        }
+        .theme-option:hover { border-color: var(--primary-blue); background: rgba(0,86,179,0.05); }
+        .theme-option.active { border-color: var(--primary-blue); background: var(--primary-blue); color: white; }
+        
+        .lang-btn {
+            width: 100%;
+            padding: 12px;
+            text-align: left;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+        .lang-btn:hover, .lang-btn.active { border-color: var(--primary-blue); color: var(--primary-blue); }
+
+        .plans-controls { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .plans-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .plan-card {
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .plan-card:hover { transform: translateY(-3px); border-color: var(--primary-blue); }
+        .plan-thumb {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: #eee;
+        }
+        .plan-details h4 { font-size: 14px; margin-bottom: 5px; color: var(--text-main); }
+        .plan-details p { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+        .plan-actions { display: flex; justify-content: space-between; margin-top: 10px; }
+        .plan-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        .plan-action-btn:hover { color: var(--primary-blue); }
+        .plan-action-btn.delete:hover { color: var(--danger); }
+
+        /* --- RESULTS VIEW --- */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .result-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .result-tab {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            color: var(--text-muted);
+        }
+        .result-tab.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+
+        .display-area {
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            min-height: 500px;
+            position: relative;
+        }
+        .img-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        .action-badge {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--primary-blue);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .display-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: contain;
+            min-height: 400px;
+            background: #f0f0f0;
+        }
+        .display-info {
+            padding: 15px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .interior-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .interior-card {
+            position: relative;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            background: var(--bg-card);
+            transition: transform 0.2s;
+        }
+        .interior-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .interior-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .download-btn-overlay {
+            position: absolute;
+            bottom: 40px;
+            right: 20px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 2;
+        }
+        .interior-card:hover .download-btn-overlay { opacity: 1; }
+        .interior-caption {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cost-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .cost-table th, .cost-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .cost-table th {
+            background-color: rgba(0,86,179,0.1);
+            color: var(--primary-blue);
+        }
+        .total-row {
+            font-weight: bold;
+            font-size: 18px;
+            background-color: rgba(0,86,179,0.05);
+        }
+
+        /* --- CHAT MODULE --- */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 140px);
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--bg-body);
+        }
+        .message {
+            margin-bottom: 15px;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        .message.user {
+            margin-left: auto;
+            background-color: var(--primary-blue);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+        .message.ai {
+            margin-right: auto;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-bottom-left-radius: 2px;
+        }
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            background: var(--bg-card);
+        }
+        .chat-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            outline: none;
+            background: var(--bg-body);
+            color: var(--text-main);
+        }
+
+        /* --- LOADING & MODAL --- */
+        #loading-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid var(--light-blue);
+            border-top: 4px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- VIEW: LOGIN / SIGNUP -->
+    <section id="view-login">
+        <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" class="login-bg-img" alt="Background">
+        
+        <div class="login-container">
+            <img src="https://z-cdn-media.chatglm.cn/files/7302499b-b92b-45f8-a965-749ba8c8e9a0.png?auth_key=1870748757-164e1fcc63604fe1acb8f1333e5e3464-0-8cecef0c616b5a11eb01486ed00c7208" class="login-logo-img" alt="DecorMind AI Logo">
+            <div class="login-subtitle" id="login-subtitle">The AI Interior Design Assistant</div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label id="lbl-fullname">Full Name</label>
+                    <input type="text" class="form-control" placeholder="John Doe" required id="login-name">
+                </div>
+                <div class="form-group">
+                    <label id="lbl-email">Email Address</label>
+                    <input type="email" class="form-control" placeholder="name@example.com" required id="login-email">
+                </div>
+                <div class="form-group">
+                    <label id="lbl-pass">Password</label>
+                    <input type="password" class="form-control" placeholder="•••••" required id="login-pass">
+                </div>
+                <button type="submit" class="btn btn-primary login-btn" id="btn-login">Login / Sign Up</button>
+            </form>
+            <div style="margin-top: 20px; font-size: 12px; color: #999;">
+                Secure Access • BHK Architecture Engine v2.0
+            </div>
+        </div>
+    </section>
+
+    <!-- APP CONTAINER -->
+    <div id="app-container" class="hidden">
+        
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+            <div class="brand">
+                <img src="https://z-cdn-media.chatglm.cn/files/7302499b-b92b-45f8-a965-749ba8c8e9a0.png?auth_key=1870748757-164e1fcc63604fe1acb8f1333e5e3464-0-8cecef0c616b5a11eb01486ed00c7208" alt="DecorMind AI Logo">
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active" onclick="switchView('view-input')">
+                    <span>📝</span> <span id="nav-new-project">New Project</span>
+                </div>
+                <div class="nav-item" onclick="switchView('view-results')">
+                    <span>📐</span> <span id="nav-designs">Designs & Plans</span>
+                </div>
+                <div class="nav-item" onclick="switchView('view-chat')">
+                    <span>💬</span> <span id="nav-chat">AI Consultant</span>
+                </div>
+                <div class="nav-item" onclick="switchView('view-settings')">
+                    <span>⚙️</span> <span id="nav-settings">Settings</span>
+                </div>
+            </div>
+            <div class="user-profile">
+                <div class="avatar" id="user-avatar">U</div>
+                <div class="user-info">
+                    <div id="display-name">User Account</div>
+                    <div style="color: var(--success);" id="status-online">Online</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="page-title" id="page-title">New Project Requirements</div>
+                <div class="action-area">
+                    <button class="btn btn-outline" onclick="window.location.reload()" id="btn-logout">Logout</button>
+                </div>
+            </header>
+
+            <div class="content-scroll">
+                
+                <!-- VIEW: USER INPUT MODULE -->
+                <section id="view-input">
+                    <div class="card">
+                        <h2 style="margin-bottom: 20px; color: var(--primary-blue);" id="title-project-details">Project Details</h2>
+                        <form id="project-form">
+                            <div class="input-grid">
+                                <div class="input-section-title" id="sec-title-dim">Plot Dimensions</div>
+                                <div class="form-group">
+                                    <label id="lbl-plot-len">Plot Length (ft)</label>
+                                    <input type="number" class="form-control" id="plot-length" placeholder="e.g. 60" required min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label id="lbl-plot-wid">Plot Width (ft)</label>
+                                    <input type="number" class="form-control" id="plot-width" placeholder="e.g. 40" required min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label id="lbl-area">Total Area (sq ft)</label>
+                                    <input type="number" class="form-control" id="total-area" readonly style="background: var(--bg-body); opacity: 0.7;">
+                                </div>
+
+                                <div class="input-section-title" id="sec-title-bhk">BHK Configuration</div>
+                                <div class="form-group">
+                                    <label id="lbl-bhk">Bedrooms (Select BHK Type)</label>
+                                    <select class="form-control" id="req-bed">
+                                        <option value="1">1 BHK</option>
+                                        <option value="2" selected>2 BHK</option>
+                                        <option value="3">3 BHK</option>
+                                        <option value="4">4 BHK</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label id="lbl-floors">Number of Floors</label>
+                                    <select class="form-control" id="num-floors">
+                                        <option value="1" selected id="opt-g0">Ground Floor Only</option>
+                                        <option value="2" id="opt-g1">G+1 (2 Floors)</option>
+                                        <option value="3" id="opt-g2">G+2 (3 Floors)</option>
+                                        <option value="4" id="opt-g3">G+3 (4 Floors)</option>
+                                        <option value="5" id="opt-g4">G+4 (5 Floors)</option>
+                                    </select>
+                                </div>
+
+                                <div class="input-section-title" id="sec-title-pref">Preferences</div>
+                                <div class="form-group">
+                                    <label id="lbl-style">Preferred Style</label>
+                                    <select class="form-control" id="pref-style">
+                                        <option value="Modern Minimalist" id="opt-min">Modern Minimalist</option>
+                                        <option value="Scandinavian" id="opt-scan">Scandinavian</option>
+                                        <option value="Industrial" id="opt-ind">Industrial</option>
+                                        <option value="Luxury" id="opt-lux">Luxury</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label id="lbl-budget">Budget Range (INR)</label>
+                                    <select class="form-control" id="budget-range">
+                                        <option value="economy" id="opt-eco">Economy (₹20L - ₹40L)</option>
+                                        <option value="standard" selected id="opt-std">Standard (₹40L - ₹80L)</option>
+                                        <option value="luxury" id="opt-lux">Luxury (₹80L+)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="text-align: right; margin-top: 20px;">
+                                <button type="submit" class="btn btn-primary" style="padding: 15px 40px; font-size: 16px;" id="btn-generate">
+                                    Design with DecorMind ✨
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- VIEW: SETTINGS (3 COLUMN LAYOUT) -->
+                <section id="view-settings" class="hidden">
+                    <h2 style="margin-bottom: 20px; color: var(--primary-blue);" id="title-settings">Settings</h2>
+                    <div class="settings-grid">
+                        
+                        <!-- COLUMN 1: THEME -->
+                        <div class="settings-column">
+                            <div class="col-header">
+                                <span>1️⃣</span> <span id="lbl-theme">Theme Settings</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted);" id="txt-theme-desc">Applied globally. Persisted per user.</p>
+                            
+                            <div class="theme-option theme-light active" onclick="setTheme('light')" id="opt-light">
+                                <div class="theme-circle"></div>
+                                <div>
+                                    <strong id="txt-light-mode">Light Mode</strong>
+                                    <div style="font-size: 12px;">White & Blue</div>
+                                </div>
+                            </div>
+                            
+                            <div class="theme-option theme-dark" onclick="setTheme('dark')" id="opt-dark">
+                                <div class="theme-circle"></div>
+                                <div>
+                                    <strong id="txt-dark-mode">Dark Mode</strong>
+                                    <div style="font-size: 12px;">Black & Gray</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLUMN 2: LANGUAGE -->
+                        <div class="settings-column">
+                            <div class="col-header">
+                                <span>2️⃣</span> <span id="lbl-lang">Language Settings</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted);" id="txt-lang-desc">All UI text + AI responses change.</p>
+
+                            <button class="lang-btn active" onclick="setLanguage('en')" id="btn-en">English</button>
+                            <button class="lang-btn" onclick="setLanguage('hi')" id="btn-hi">Hindi</button>
+                            <button class="lang-btn" onclick="setLanguage('te')" id="btn-te">Telugu</button>
+                            <button class="lang-btn" onclick="setLanguage('de')" id="btn-de">German</button>
+                            <button class="lang-btn" onclick="setLanguage('ja')" id="btn-ja">Japanese</button>
+                        </div>
+
+                        <!-- COLUMN 3: MY PLANS -->
+                        <div class="settings-column">
+                            <div class="col-header">
+                                <span>3️⃣</span> <span id="lbl-myplans">My Plans</span>
+                            </div>
+                            
+                            <div class="plans-controls">
+                                <select class="form-control" style="padding: 5px; width: auto;" id="sort-plans" onchange="renderSavedPlans()">
+                                    <option value="date" id="opt-sdate">Sort by Date</option>
+                                    <option value="name" id="opt-sname">Sort by Name</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline" onclick="switchView('view-input')">
+                                    <span>+</span> <span id="btn-newplan">New Plan</span>
+                                </button>
+                            </div>
+
+                            <div class="plans-list" id="plans-list-container">
+                                <!-- Plan Cards Rendered Here -->
+                                <div style="text-align: center; color: var(--text-muted); margin-top: 50px;" id="msg-no-plans">No plans saved yet.</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- VIEW: AI GENERATION RESULTS -->
+                <section id="view-results" class="hidden">
+                    
+                    <div class="results-header">
+                        <div>
+                            <h2 style="color: var(--primary-blue);">Generated Proposal: <span id="header-bhk">2BHK</span></h2>
+                            <p style="color: var(--text-muted);">Based on your <span id="result-style-input">Modern</span> requirements</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline" onclick="regenerateDesign()">🔄 <span id="btn-regen">Regenerate Next Image</span></button>
+                            <button class="btn btn-primary" onclick="saveCurrentPlan()">💾 <span id="btn-save">Save Project</span></button>
+                        </div>
+                    </div>
+
+                    <!-- Main Tabs -->
+                    <div class="result-tabs" id="result-tabs-nav">
+                        <div class="result-tab active" onclick="switchResultTab('tab-blueprint')" id="tab-blueprint-btn">Blueprint</div>
+                        <div class="result-tab" onclick="switchResultTab('tab-3d')" id="tab-3d-btn">3D View</div>
+                        <div class="result-tab" onclick="switchResultTab('tab-interior')" id="tab-interior-btn">Interior Ideas (Hall, Bed, Kitchen)</div>
+                        <div class="result-tab" onclick="switchResultTab('tab-cost')" id="tab-cost-btn">Cost Estimation (INR)</div>
+                        <div class="result-tab" onclick="switchResultTab('tab-references')" id="tab-ref-btn">More References</div>
+                    </div>
+
+                    <!-- LOADING SPINNER -->
+                    <div id="loading-overlay" class="hidden">
+                        <div class="spinner"></div>
+                        <div id="txt-rendering">AI Rendering Architecture...</div>
+                    </div>
+
+                    <!-- TAB CONTENTS -->
+                    <div class="display-area">
+                        
+                        <!-- 1. BLUEPRINT -->
+                        <div id="tab-blueprint" class="tab-content">
+                            <div class="img-actions">
+                                <span class="action-badge">AI Generated Blueprint</span>
+                                <button class="btn btn-sm btn-primary" onclick="downloadCurrentImage('blueprint')">⬇ <span id="btn-dl">Download</span></button>
+                            </div>
+                            <img id="img-blueprint" src="" class="display-img" alt="Blueprint">
+                            <div class="display-info">
+                                <h3 id="txt-blueprint-title">Technical Blueprint (Architectural Standard)</h3>
+                                <p id="blueprint-desc">Detailed 2D plan including standard room sizes, circulation paths, and wall thickness.</p>
+                            </div>
+                        </div>
+
+                        <!-- 2. 3D VIEW -->
+                        <div id="tab-3d" class="tab-content hidden">
+                            <div class="img-actions">
+                                <span class="action-badge">AI 3D Render</span>
+                                <button class="btn btn-sm btn-primary" onclick="downloadCurrentImage('3d')">⬇ <span id="btn-dl">Download</span></button>
+                            </div>
+                            <img id="img-3d" src="" class="display-img" alt="3D Render">
+                            <div class="display-info">
+                                <h3 id="txt-3d-title">3D Exterior & Interior Visualization</h3>
+                                <p id="txt-3d-desc">Photorealistic rendering showing natural lighting, furniture placement, and spatial depth.</p>
+                            </div>
+                        </div>
+
+                        <!-- 3. INTERIOR IDEAS -->
+                        <div id="tab-interior" class="tab-content hidden">
+                            <div style="padding: 20px;">
+                                
+                                <!-- SECTION 1: HALL -->
+                                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px;" id="lbl-hall">Hall / Living Room Design Ideas</h3>
+                                <div class="interior-grid" style="margin-bottom: 40px;">
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/4be1d59a-d99f-4a76-a524-eb907cfbb8a4.jpeg?auth_key=1870745442-b495659718d4447834e4afe5b020542-0-09c1cf1bba673c74fcec8949671c276e" alt="Hall 1">
+                                        <div class="interior-caption">
+                                            <span id="txt-mod-nat">Modern Nature View</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/4be1d59a-d99f-4a76-a524-eb907cfbb8a4.jpeg?auth_key=1870745442-b495659718d4447834e4afe5b020542-0-09c1cf1bba673c74fcec8949671c276e')">⬇</button>
+                                        </div>
+                                    </div>
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/db19eef9-013f-4f48-a388-7e2f03c3c5f4.jpeg?auth_key=1870745442-f3f2b3d52fef4b6dbcf736707c0eec07-0-760299869dc2d8cadd61c28a652ce4ac" alt="Hall 2">
+                                        <div class="interior-caption">
+                                            <span id="txt-book-wall">Bookshelf & Media Wall</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/db19eef9-013f-4f48-a388-7e2f03c3c5f4.jpeg?auth_key=1870745442-f3f2b3d52fef4b6dbcf736707c0eec07-0-760299869dc2d8cadd61c28a652ce4ac')">⬇</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 2: BEDROOM -->
+                                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px;" id="lbl-bed">Bedroom Design Ideas</h3>
+                                <div class="interior-grid" style="margin-bottom: 40px;">
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/6f705de6-6b9e-461f-bd95-62ca9eaacb57.jpeg?auth_key=1870745442-62027346ef8d4cf48911d57c7ab62011-0-efc48125da1388c8554848a78c0530a0" alt="Bed 1">
+                                        <div class="interior-caption">
+                                            <span id="txt-eleg-white">Elegant White Bed</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/6f705de6-6b9e-461f-bd95-62ca9eaacb57.jpeg?auth_key=1870745442-62027346ef8d4cf48911d57c7ab62011-0-efc48125da1388c8554848a78c0530a0')">⬇</button>
+                                        </div>
+                                    </div>
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/0f44be0c-b987-4b5c-b6c7-b8e33397e8a1.jpeg?auth_key=1870745442-811141606a334da0b2043845654666c6-0-9933a36a07b09c238537b7f687e5ce68" alt="Bed 2">
+                                        <div class="interior-caption">
+                                            <span id="txt-yel-white">Yellow & White</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/0f44be0c-b987-4b5c-b6c7-b8e33397e8a1.jpeg?auth_key=1870745442-811141606a334da0b2043845654666c6-0-9933a36a07b09c238537b7f687e5ce68')">⬇</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 3: KITCHEN -->
+                                <h3 style="margin-bottom: 20px; border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px;" id="lbl-kitchen">Kitchen Design Ideas</h3>
+                                <div class="interior-grid">
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/8a039fcc-7188-4907-94d1-72632be513b2.png?auth_key=1870739387-326b40c1a55b43d7971b48f1418c1077-0-3cc76dd41f84531c4b6f9b8c4eb5638b" alt="Modern White Kitchen">
+                                        <div class="interior-caption">
+                                            <span id="txt-mod-white">Modern White Modular</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/8a039fcc-7188-4907-94d1-72632be513b2.png?auth_key=1870739387-326b40c1a55b43d7971b48f1418c1077-0-3cc76dd41f84531c4b6f9b8c4eb5638b')">⬇</button>
+                                        </div>
+                                    </div>
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/712fd484-fb08-4bed-a5a2-6d3535b2031f.jpeg?auth_key=1870746036-fe4cd36bfe524ba58e525562326da234-0-f20f67dc7ede66e6f167ef66f565989c" alt="Yellow Brown Kitchen">
+                                        <div class="interior-caption">
+                                            <span id="txt-warm-brown">Warm Yellow & Brown</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/712fd484-fb08-4bed-a5a2-6d3535b2031f.jpeg?auth_key=1870746036-fe4cd36bfe524ba58e525562326da234-0-f20f67dc7ede66e6f167ef66f565989c')">⬇</button>
+                                        </div>
+                                    </div>
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/4719d79b-f3f6-44e7-9529-9979801b3790.jpeg?auth_key=1870746036-bd051b0ce8614d12a139fe5823b211ca-0-316bf14b03d280f7e5b939b1dd9b31a2" alt="L-Shape Brown Kitchen">
+                                        <div class="interior-caption">
+                                            <span id="txt-comp-l">Compact L-Shape</span>
+                                            <button class="btn btn-sm btn-outline download-btn-overlay" onclick="downloadImage('https://z-cdn-media.chatglm.cn/files/4719d79b-f3f6-44e7-9529-9979801b3790.jpeg?auth_key=1870746036-bd051b0ce8614d12a139fe5823b211ca-0-316bf14b03d280f7e5b939b1dd9b31a2')">⬇</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- 4. COST ESTIMATION -->
+                        <div id="tab-cost" class="tab-content hidden">
+                            <div style="padding: 30px;">
+                                <h3 style="margin-bottom: 20px;" id="lbl-cost-est">Room-wise Interior Estimation (INR)</h3>
+                                <table class="cost-table">
+                                    <thead>
+                                        <tr>
+                                            <th id="tbl-h-item">Room / Item</th>
+                                            <th id="tbl-h-qty">Qty</th>
+                                            <th id="tbl-h-rate">Unit Rate / Range</th>
+                                            <th id="tbl-h-total">Total Cost (₹)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cost-table-body">
+                                        <!-- JS Populated -->
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="total-row">
+                                            <td colspan="3" id="tbl-f-grandtotal">Grand Total (Interior)</td>
+                                            <td id="grand-total">₹0.00</td>
+                                        </tr>
+                                        <tr id="floor-cap-row" class="hidden" style="color: #d35400; background-color: rgba(255, 193, 7, 0.1);">
+                                            <td colspan="4" style="text-align: center; padding: 10px;">
+                                                <strong>Note:</strong> <span id="txt-cap-note">Adjusted to maximum floor limit for G+</span><span id="floor-count-display"></span>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                                <p style="margin-top: 15px; font-size: 12px; color: var(--text-muted);" id="txt-cost-logic">
+                                    * Cost Logic: Living (1.5-4L), Kitchen (2-5L), Bed (1-3L), Bath (0.8-2L), TV Wall (50k-1.5L), Ceiling (120-250/sqft).
+                                    <br>* Floor Caps: G (Max 10L), G+1 (Max 20L), G+2 (Max 35L), G+4 (Max 45L).
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 5. REFERENCES -->
+                        <div id="tab-references" class="tab-content hidden">
+                            <div style="padding: 20px;">
+                                <h3 id="lbl-more-ref">Additional Layout References</h3>
+                                <div class="interior-grid">
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/7f2b5a7b-0ac8-4f27-8605-9aeadeca5e28.png?auth_key=1870739387-eed4eec647ed408db6fc6b0d353e081e-0-ed34f90f4b357c7d48eb8e14cbe824ad" alt="Ref 1">
+                                        <div style="margin-top: 10px;" id="txt-std2bhk">Standard 2BHK Layout Reference</div>
+                                    </div>
+                                    <div class="interior-card">
+                                        <img src="https://z-cdn-media.chatglm.cn/files/701c80c5-8eaf-4368-8780-cf91c3eadb6e.png?auth_key=1870739387-f3569ff4fc934a53a1c2cc6b1cb19ec0-0-144e27b7970f0af60ed691b216f4ddf6" alt="Ref 2">
+                                        <div style="margin-top: 10px;" id="txt-zoning">3D Zoning Concept</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- VIEW: AI CHAT ASSISTANT -->
+                <section id="view-chat" class="hidden">
+                    <div class="chat-container">
+                        <div style="padding: 15px; border-bottom: 1px solid var(--border-color); background: rgba(0,86,179,0.1);">
+                            <strong>DecorMind AI Consultant</strong>
+                            <p style="font-size: 12px; color: var(--text-muted);" id="txt-chat-sub">Expert in Vastu, Work Triangle, Circulation & Privacy Zoning.</p>
+                        </div>
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="message ai">
+                                <span id="chat-greeting">Hello! I am ready to assist. I can help you with standard room sizes, kitchen work triangle logic, or cross-ventilation tips for your</span> <span id="chat-bhk-context">2BHK</span> project.
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" id="chat-input-field" placeholder="Ask about standards, e.g., 'Minimum bedroom size?'">
+                            <button class="btn btn-primary" onclick="sendMessage()" id="btn-send">Send</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL CONTAINER -->
+    <div id="modal-container" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h3 id="modal-title" style="margin-bottom: 10px;">Confirm Action</h3>
+            <p id="modal-msg">Are you sure?</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="modal-cancel">Cancel</button>
+                <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- TRANSLATION DATA (MOCKING JSON FILES) ---
+        // This structure mimics the JSON files requested in the Master Prompt
+        const translations = {
+            en: {
+                common: {
+                    generate: "Generate", regenerate: "Regenerate", submit: "Submit", cancel: "Cancel", confirm: "Confirm",
+                    delete: "Delete", save: "Save", download: "Download", logout: "Logout", login: "Login", signup: "Sign Up",
+                    welcome: "Welcome", rendering: "AI Rendering Architecture...", welcomeMsg: "Welcome back", designSuccess: "Design Generated Successfully",
+                    downloadStarted: "Download started...", planSaved: "Project Saved to My Plans", planDeleted: "Plan Deleted", planDuplicated: "Plan Duplicated",
+                    langChanged: "Language Changed", themeChanged: "Theme Changed"
+                },
+                navigation: { newProject: "New Project", designs: "Designs & Plans", aiChat: "AI Consultant", settings: "Settings", theme: "Theme Settings", language: "Language Settings", myPlans: "My Plans" },
+                ui: {
+                    projectDetails: "Project Details", plotDimensions: "Plot Dimensions", plotLen: "Plot Length (ft)", plotWid: "Plot Width (ft)", totalArea: "Total Area (sq ft)",
+                    bhkConfig: "BHK Configuration", bedrooms: "Bedrooms (Select BHK Type)", floors: "Number of Floors", preferences: "Preferences",
+                    style: "Preferred Style", budget: "Budget Range (INR)", themeDesc: "Applied globally. Persisted per user.", langDesc: "All UI text + AI responses change.",
+                    sortDate: "Sort by Date", sortName: "Sort by Name", newPlan: "New Plan", noPlans: "No plans saved yet.", confirmDel: "Are you sure you want to delete this plan?", enterName: "Enter new name for this plan:",
+                    groundFloor: "Ground Floor Only", g1: "G+1 (2 Floors)", g2: "G+2 (3 Floors)", g3: "G+3 (4 Floors)", g4: "G+4 (5 Floors)",
+                    eco: "Economy (₹20L - ₹40L)", std: "Standard (₹40L - ₹80L)", lux: "Luxury (₹80L+)", modMin: "Modern Minimalist", scan: "Scandinavian", ind: "Industrial", luxOpt: "Luxury"
+                },
+                results: {
+                    proposal: "Generated Proposal:", basedOn: "Based on your", requirements: "requirements", blueprint: "Blueprint", view3d: "3D View", interior: "Interior Ideas",
+                    hall: "Hall / Living Room Design Ideas", bed: "Bedroom Design Ideas", kitchen: "Kitchen Design Ideas", cost: "Cost Estimation (INR)", ref: "More References",
+                    aiBp: "AI Generated Blueprint", ai3d: "AI 3D Render", bpTitle: "Technical Blueprint (Architectural Standard)",
+                    bpDesc: "Detailed 2D plan including standard room sizes, circulation paths, and wall thickness.",
+                    view3dTitle: "3D Exterior & Interior Visualization", view3dDesc: "Photorealistic rendering showing natural lighting, furniture placement, and spatial depth.",
+                    modNat: "Modern Nature View", bookWall: "Bookshelf & Media Wall", elegWhite: "Elegant White Bed", yelWhite: "Yellow & White",
+                    modWhite: "Modern White Modular", warmBrown: "Warm Yellow & Brown", compL: "Compact L-Shape",
+                    costTitle: "Room-wise Interior Estimation (INR)", roomItem: "Room / Item", qty: "Qty", unitRate: "Unit Rate / Range", total: "Total Cost (₹)",
+                    grandTotal: "Grand Total (Interior)", noteCap: "Adjusted to maximum floor limit for G+", costLogic: "* Cost Logic: Living (1.5-4L), Kitchen (2-5L), Bed (1-3L), Bath (0.8-2L), TV Wall (50k-1.5L), Ceiling (120-250/sqft).\n* Floor Caps: G (Max 10L), G+1 (Max 20L), G+2 (Max 35L), G+4 (Max 45L).",
+                    moreRef: "Additional Layout References", std2bhk: "Standard 2BHK Layout Reference", zoning: "3D Zoning Concept"
+                },
+                chat: {
+                    greeting: "Hello! I am ready to assist. I can help you with standard room sizes, kitchen work triangle logic, or cross-ventilation tips for your", project: "project.",
+                    ask: "Ask about standards, e.g., 'Minimum bedroom size?'", consultant: "Expert in Vastu, Work Triangle, Circulation & Privacy Zoning.",
+                    analyzing: "Analyzing architectural standards...", masterBed: "For a standard", masterBedDesc: "BHK, the Master Bedroom should be at least 12'x14' (168 sq ft) for circulation. Standard bedrooms should be 10'x12' (120 sq ft) to accommodate a double bed with side tables.",
+                    kitchenTri: "The Kitchen Work Triangle principle dictates that the distance between the Sink, Stove, and Refrigerator should total between 10' to 25'. For efficient workflow, ensure no leg of the triangle is less than 4' or more than 9'.",
+                    costAdvice: "Based on your floor count (", costAdviceEnd: "), maximum construction cost is capped. For interior details, see the Cost Estimation tab for the full breakdown.",
+                    generic: "I am following architectural standards for your", genericEnd: "project. I can advise on circulation space (minimum 3' wide) or privacy zoning (Public -> Semi-Private -> Private flow). What specific element would you like to optimize?", regenMsg: "Regenerating: Showing"
+                },
+                errors: { invalidPlot: "Please enter valid plot dimensions.", missingInput: "Input cannot be empty." }
+            },
+            hi: {
+                common: { generate: "उत्पन्न करें", regenerate: "पुनःउत्पादा", submit: "जमा", cancel: "रद्द करें", confirm: "पुष्टि करें", delete: "हटाएं", save: "सहेजें", download: "डाउनलोड", logout: "लॉग आउट", login: "लॉग इन", signup: "साइन अप", welcome: "स्वागत", rendering: "AI आर्किटेक्चर रेंडरिंग...", welcomeMsg: "वापसी आपका स्वागत है", designSuccess: "डिज़ाइन सफलतापूर्वक उत्पन्न किया गया", downloadStarted: "डाउनलोड शुरू हो गया...", planSaved: "प्रोजेक्ट मेरी योजनाएं में सहेजा गया", planDeleted: "योजना हटा दिया गया", planDuplicated: "योजना डुप्लिकेट किया गया", langChanged: "भाषा बदल दी गई", themeChanged: "थीम बदल दी गई" },
+                navigation: { newProject: "नया प्रोजेक्ट", designs: "डिज़ाइन और योजना", aiChat: "AI सलाहकार", settings: "सेटिंग्स", theme: "थीम सेटिंग्स", language: "भाषा सेटिंग्स", myPlans: "मेरी योजनाएं" },
+                ui: { projectDetails: "प्रोजेक्ट विवरण", plotDimensions: "प्लॉट आयाम", plotLen: "प्लॉट की लंबाई (ft)", plotWid: "प्लॉट की चौड़ाई (ft)", totalArea: "कुल क्षेत्रफल (sq ft)", bhkConfig: "BHK कॉन्फ़िगरेशन", bedrooms: "बेडरूम (BHK प्रकार प्रकार चुनें)", floors: "मंजिला की संख्या", preferences: "पसंद", style: "पसंदित शैली", budget: "बजट रेंज (INR)", themeDesc: "वैश्विक रूप से लागू। प्रति उपयोगक के लिए सहेजा किया गया।", langDesc: "सभी UI पाठ + AI प्रतिक्रियाएं बदलती हैं।", sortDate: "दिनांक के अनुसार क्रमबद्ध", sortName: "नाम के अनुसार क्रमबद्ध", newPlan: "नई योजना", noPlans: "अभी कोई योजना सहेजी नहीं है।", confirmDel: "क्या आप वाकई इस योजना को हटाना चाहते हैं?", enterName: "इस योजने के लिए नया नाम दर्ज करें:", groundFloor: "केवल मंजिला", g1: "G+1 (2 मंजिला)", g2: "G+2 (3 मंजिला)", g3: "G+3 (4 मंजिला)", g4: "G+4 (5 मंजिला)", eco: "इकोनॉी (₹20L - ₹40L)", std: "स्टैंडर्ड (₹40L - ₹80L)", lux: "लक्जरी (₹80L+)", modMin: "आधुनिक मिनिमालिस्ट", scan: "स्कैंडिनेवियन", ind: "इंडस्ट्रियल", luxOpt: "लक्जरी" },
+                results: { proposal: "उत्पन्न प्रस्ताव:", basedOn: "आपकी", requirements: "आवश्यकताओं के आधार पर", blueprint: "नीली मुद्रिका", view3d: "3D दृश्य", interior: "इंटीरियर विचार", hall: "हॉल / लिविंग रूम डिज़ाइन विचार", bed: "बेडरूम डिज़ाइन विचार", kitchen: "रसोई डिज़ाइन विचार", cost: "लागत अनुमान (INR)", ref: "अधिक संदर्भ", aiBp: "AI उत्पन्न ब्लूप्रिंट", ai3d: "AI 3D प्रतिपादन", bpTitle: "तकनीकी ब्लूप्रिंट (वास्तुकिक मानक)", bpDesc: "मानक कमरे के आकार, संचलन मार्ग और दीवार की मोटाई के साथ विस्तृत 2D योजना।", view3dTitle: "3D बाहरी और इंटीरियर विज़ुअलाइजेशन", view3dDesc: "प्राकृतिक प्रकाश जो प्राकृतिक प्रकाश, फर्नीचर प्लेसमेंट और स्थानिक गहरावट दिखाता है।", modNat: "आधुनिक प्रकृति दृश्य", bookWall: "बुकशेल्फ और मीडिया वॉल", elegWhite: "सुंदर सफेद बिस्ट", yelWhite: "पीला और सफेद", modWhite: "आधुनिक सफेद मॉड्यूलर", warmBrown: "गर्म पीला और भूरा", compL: "कॉम्पैक्ट एल-शेप", costTitle: "कमरे के अनुसार इंटीरियर अनुमान (INR)", roomItem: "कमरा / आइटम", qty: "मात्रा", unitRate: "यूनिट रेट / सीमा", total: "कुल लागत (₹)", grandTotal: "कुल कुल (इंटीरियर)", noteCap: "G+ के लिए अधिकतम मंजिला सीमा के लिए समायोजित है", costLogic: "* लागत तर्क: लिविंग (1.5-4L), किचन (2-5L), बेड (1-3L), बाथ (0.8-2L), टीवी वॉल (50k-1.5L), छत (120-250/sqft)।\n* मंजिला कैप: G (अधिकतम 10L), G+1 (अधिकतम 20L), G+2 (अधिकतम 35L), G+4 (अधिकतम 45L)।", moreRef: "अतिरिक लेआउट संदर्भ", std2bhk: "मानक 2BHK लेआउट संदर्भ", zoning: "3D ज़ोनिंग अवधारण" },
+                chat: { greeting: "नमस्ते! मैं मदद करने के लिए तैयार हूं। मैं आपको मानक आकार, रसोई वर्क ट्राइंगल लॉजिक, या पार-वेंटिलेशन टिप्स के बारे में मदद कर सकता हूं आपके", project: "प्रोजेक्ट।", ask: "मानकों के बारे में पूछें, उदाहरण 'न्यूनतम बेडरूम आकार'?", consultant: "वास्तु, वर्क ट्राइंगल, परिसंचरन और गोपनीय जोनिंग में विशेष।", analyzing: "वास्तुकिक मानकों का विश्लेषण किया जा रहा है...", masterBed: "मानक के लिए", masterBedDesc: "BHK, मास्टर बेडरूम कम से कम 12'x14' (168 sq ft) होनी चाहिए परिसंचरन के लिए। मानक बेडरूम कम से कम 10'x12' (120 sq ft) होनी चाहिए ताकि दोनों साइड टेबल के साथ डबल बेड आ सकता है।", kitchenTri: "किचन वर्क ट्राइंगल सिद्धांत के अनुसार, सिंक, चूल्हा और रेफ्रिजरेटर के बीच की दूरी कुल 10' से 25' होनी चाहिए। कुशल कार्यक्षमता के लिए, सुनिश्चित करें कि त्रिकोण में कोई भी पैर 4' से कम या 9' से ज्यादा न हो।", costAdvice: "आपके मंजिला की संख्या (", costAdviceEnd: ") के आधार पर, अधिकतम निर्माण लागत सीमित है। इंटीरियर विवरणों के लिए पूरा विवरण के लिए लागत अनुमान टैब देखें।", generic: "मैं आपके", genericEnd: "प्रोजेक्ट के लिए वास्तुकिक मानकों का पालन कर रहा हूं। मैं परिसंचरन स्थान (न्यूनतम 3' चौड़ा) या गोपनीय जोनिंग (सार्वजिक -> अर्ध-सार्वजिक -> निजी) बारे में सलाह दे सकता हूं। आप क्या अनुकूल करना चाहते हैं?", regenMsg: "पुनःउत्पादा: दिखा रहा है" },
+                errors: { invalidPlot: "कृपया मान्य आयाम दर्ज करें।", missingInput: "इनपुट खाली नहीं हो सकती।" }
+            },
+            te: { /* Telugu Placeholders */
+                common: { generate: "రెండర్ చేయండి", regenerate: "మళ్లి జనరేట్ చేయండి", submit: "సమర్పు", cancel: "రద్దించు", confirm: "నిర్ధారించు", delete: "తొలగించు", save: "సేవ్ చేయండి", download: "డౌన్లోడ్", logout: "లాగ్అవుట్", login: "లాగ్ఇన్", signup: "సైన్అప్", welcome: "స్వాగతం", rendering: "AI రెండరింగ్ రెండరింగ్ ఉందా...", welcomeMsg: "వాపసీ రాబర్ స్వాగతం", designSuccess: "డిజైన్ విజయువల్ మండలింగ్ వివరణలు", downloadStarted: "డౌన్లోడ్ ప్రారం ప్రారండి...", planSaved: "ప్రాజెక్ట్ నా ప్లాన్‌లులో సేవ్ చేయండి", planDeleted: "ప్లాన్ తొలగించా", planDuplicated: "ప్లాన్ డూప్లికేట్ చేసిండి", langChanged: "భాష మార్పడిలింది", themeChanged: "థీమ్ మార్పడిలింది" },
+                navigation: { newProject: "కొత్త ప్రాజెక్ట్", designs: "డిజైన్స్ మరియోజనాలు", aiChat: "AI కన్సల్టెంట్", settings: "సెట్టింగ్స్", theme: "థీమ్ సెట్టింగ్స్", language: "భాష సెట్టింగ్స్", myPlans: "నా ప్లాన్లు" },
+                ui: { projectDetails: "ప్రాజెక్ట్ వివరణలు", plotDimensions: "ప్లాట్ డిమెన్షన్లు", plotLen: "ప్లాట పొడవు (ft)", plotWid: "ప్లాట వెడలు (ft)", totalArea: "మొత్తం విస్తీరఫలు (sq ft)", bhkConfig: "BHK కాన్ఫిగరేషన్", bedrooms: "బెడ్రూమ్ (BHK రకార రకార ఎంచుకోండి)", floors: "అంతలుల సంఖ్య", preferences: "ఇష్టాలింగ్లు", style: "ఇష్టాలి శైలి", budget: "బడ్జెట్ రేంజ్ (INR)", themeDesc: "వైశ్విక రీతిలో వర్తొల్గలుండి. ప్రతి ఉపయోగకుల కోసం భద్యి.", langDesc: "అన్ని UI పాఠ + AI ప్రతిక్రియాలు మార్పడతలు.", sortDate: "తేదీ ప్రకారం అనుసారం క్రమబద్ధ", sortName: "నామ యొక్క అనుసారం క్రమబద్ధ", newPlan: "కొత్త ప్లాన్", noPlans: "ఇంక ప్లాన్ సేవ్ చేయండి లేదు.", confirmDel: "మీరు తప్ప్పొందినా ప్లాన్ తొలగించాలి ఉందా?" , enterName: "ఈ ప్లాన్ కొరకు కొత్త పేరు దాఖలండి:", groundFloor: "కింద్రి అంతలు", g1: "G+1 (2 అంతలులు)", g2: "G+2 (3 అంతలులు)", g3: "G+3 (4 అంతలులు)", g4: "G+4 (5 అంతలులు)", eco: "ఆర్థికమీ (₹20L - ₹40L)", std: "ప్రామాణిక (₹40L - ₹80L)", lux: "లగ్జరీ (₹80L+)", modMin: "ఆధునిక మినిమాలిస్ట్", scan: "స్కాండినేవియన్", ind: "ఇండస్ట్రియల్", luxOpt: "లగ్జరీ" },
+                results: { proposal: "ఉత్పన్న ప్రస్తావ:", basedOn: "మీ", requirements: "ఆవశ్యకతల యొక్క", blueprint: "నీలి చిత్రు", view3d: "3D వీక్ష్య", interior: "ఇంటీరియర్ విచారలు", hall: "హాల్ / లివింగ్ రూమ్ డిజైన్ విచారలు", bed: "బెడ్రూమ్ డిజైన్ విచారలు", kitchen: "వంటింగ్ డిజైన్ విచారలు", cost: "ఖర్చ అనుమాన్ (INR)", ref: "అదిక లేఔట్ సందర్భ", aiBp: "AI ఉత్పన్న బ్లూప్రింట్", ai3d: "AI 3D ప్రతిపాదన", bpTitle: "టెక్నికల్ బ్లూప్రింట్ (వాస్తుకిక మానక)", bpDesc: "మానక కమరే యొక్క, సంచలన మార్గ మరి విస్తర కీ మోటాయి విస్తృత 2D యోజనా.", view3dTitle: "3D బాహరి మరియరియర్ విజుఅలైజేషన", view3dDesc: "ఫొటోరిక ప్రకాశ జో ఫర్నీచర ప్లేసమెంట్ ప్రదర్శన, ఫర్నీచర ప్లేసమెంట్ మరి స్థానిక గహరావట దిగాతుందా.", modNat: "ఆధునిక ప్రకృతి", bookWall: "బుక్‌షెల్ఫ్ మీడియా వాల్", elegWhite: "సుందర తెల్లు", yelWhite: "పసుప తెలు", modWhite: "ఆధునిక తెల్లు మోడ్యూలర్", warmBrown: "వెంటు పసుప", compL: "కాంపాక్ట్ ఎల్-షేప్", costTitle: "కమరల అనుసార ఇంటీరియర్ అనుమాన్ (INR)", roomItem: "కమర / ఐటమ్", qty: "మాత్ర", unitRate: "యూనిట్ రేట్ / సీమ", total: "మొత్తం (₹)", grandTotal: "మొత్తం (ఇంటీరియర్)", noteCap: "G+ కొరకు అధికతం మంజిలా సీమల కోసం చేసి", costLogic: "* లాగత తర్క: లివింగ్ (1.5-4L), వంటింగ్ (2-5L), బెడ్ (1-3L), బాత్ (0.8-2L), టీవీ వాల్ (50k-1.5L), సీలింగ్ (120-250/sqft).\n* మంజిలా క్యప్: G (గరిషంతం 10L), G+1 (గరిషంతం 20L), G+2 (గరిషంతం 35L), G+4 (గరిషంతం 45L).", moreRef: "అదిక లెఉట్ సందర్భ", std2bhk: "మానక 2BHK లేఔట్ సందర్భ", zoning: "3D జోనింగ్ అవధారణ" },
+                chat: { greeting: "నమస్తే! మీం మదద కరనే కొలగి తైయారున్న్. మీం ఆపక్కు మానక ఆకార, రసోఈ వర్క ట్రాయింగల్ ల౉జిక్, లేదావరి ప్రాస్-వెంటిలేషన్ టిప్స్ కొరకు మదద కరగలూడి ఆపకే", project: "ప్రాజెక్ట్.", ask: "మానకోం బారే మేం ప్రశ్నుందా, ఉదాహరణ 'న్యూనతం బెడ్రూమ్ ఆకార'?", consultant: "వాస్తు, వర్క ట్రాయింగల్, పరిసంచరన మరి గోపనీయ జోనింగ్ నిపుణలు.", analyzing: "వాస్తుకిక మానకోన విశ్లేషణ కి జరుగోస్తోంది...", masterBed: "మానక కొరకు", masterBedDesc: "BHK, మాస్టర్ బెడ్రూమ కనీసిం 12'x14' (168 sq ft) కిలి పరిసంచరనకు కావాలి. మానక బెడ్రూమ్ కనీసిం 10'x12' (120 sq ft) కిలి రెండు బెడ్పై సైడ్ టేబులతో డబల్ బెడ్ ఆ సకగాలి.", kitchenTri: "కిచన్ వర్క ట్రాయింగల్ సిద్ధాంత యనుసార, సింక్, చూల్హా మరిఫ్రిజరేటర్ కొరి బీచ కీ మొత్తం 10' నుంద 25' హోవాలి. సమర్ప్కు కార్యక్షమత కోసం కోసం చేయడి, త్రికోణలో ఏదైనా భీ పైర్ 4' సెస్సి కము యా 9' జ్యాదా నోవు.", costAdvice: "మీ అంతలుల సంఖ్య (", costAdviceEnd: ") ఆధార పర, అధికతం నిర్మాణ లాగత సీమితమై. ఇంటీరియర్ వివరణల కోసం పూర్తా వివరణ కోసం చేయి.", generic: "మీం ఆపకే", genericEnd: "ప్రాజెక్ట్ కొరకు మానకోం పాలన కరుగోస్తున్నున్. మీం పరిసంచరన స్థాని (న్యూనతం 3' చౌడా) లేదా గోపనీయ జోనింగ్ (సార్జిక -> అర్ధ-సార్జిక -> నిజీ) బార్లో మేం సలాహ దేసకలుందా.", regenMsg: "మళ్లి జనరేట్ చేయండి: దిగుతున్నుంది" },
+                errors: { invalidPlot: "దయిశాలైన ప్లాట్ డైమెన్షన్లు దాఖలండి.", missingInput: "ఇన్పుట్ ఖాలీ లేదు." }
+            },
+            de: { /* German Placeholders */
+                common: { generate: "Erstellen", regenerate: "Regenerieren", submit: "Einreichen", cancel: "Abbrechen", confirm: "Bestätigen", delete: "Löschen", save: "Speichern", download: "Herunterladen", logout: "Abmelden", login: "Anmelden", signup: "Registrieren", welcome: "Willkommen", rendering: "KI rendert Architektur...", welcomeMsg: "Willkommen zurück", designSuccess: "Design erfolgreich generiert", downloadStarted: "Download gestartet...", planSaved: "Projekt zu Meine Pläne gespeichert", planDeleted: "Plan gelöscht", planDuplicated: "Plan dupliziert", langChanged: "Sprache geändert", themeChanged: "Theme geändert" },
+                navigation: { newProject: "Neues Projekt", designs: "Designs & Pläne", aiChat: "KI Berater", settings: "Einstellungen", theme: "Theme-Einstellungen", language: "Spracheinstellungen", myPlans: "Meine Pläne" },
+                ui: { projectDetails: "Projektdetails", plotDimensions: "Grundstück Maße", plotLen: "Länge des Grundstücks (ft)", plotWid: "Breite des Grundstücks (ft)", totalArea: "Gesamtfläche (sq ft)", bhkConfig: "BHK Konfiguration", bedrooms: "Schlafzimmer (BHK Typ wählen)", floors: "Anzahl der Stockwerke", preferences: "Vorlieben", style: "Bevorzugter Stil", budget: "Budget Range (INR)", themeDesc: "Wird global angewendet. Pro Benutzer gespeichert.", langDesc: "Alle UI-Texte + KI-Antworten ändern.", sortDate: "Nach Datum sortieren", sortName: "Nach Namen sortieren", newPlan: "Neuer Plan", noPlans: "Noch keine Pläne gespeichert.", confirmDel: "Sind Sie sicher, dass Sie diesen Plan löschen möchten?", enterName: "Geben Sie einen neuen Namen für diesen Plan ein:", groundFloor: "Nur Erdgeschoss", g1: "G+1 (2 Stockwerke)", g2: "G+2 (3 Stockwerke)", g3: "G+3 (4 Stockwerke)", g4: "G+4 (5 Stockwerke)", eco: "Wirtschaftlich (₹20L - ₹40L)", std: "Standard (₹40L - ₹80L)", lux: "Luxus (₹80L+)", modMin: "Modern Minimalistisch", scan: "Skandinavisch", ind: "Industriell", luxOpt: "Luxus" },
+                results: { proposal: "Generierter Vorschlag:", basedOn: "Basierend auf Ihren", requirements: "Anforderungen", blueprint: "Bauplan", view3d: "3D-Ansicht", interior: "Interieur-Design-Ideen", hall: "Wohnzimmer / Wohnzimmer Design-Ideen", bed: "Schlafzimmer Design-Ideen", kitchen: "Küchen-Design-Ideen", cost: "Kostenschätzung (INR)", ref: "Weitere Referenzen", aiBp: "KI generierter Bauplan", ai3d: "KI 3D-Render", bpTitle: "Technischer Bauplan (Architektonischer Standard)", bpDesc: "Detaillierter 2D-Plan einschließlich Standardraumgrößen, Verkehrswege und Wandestärke.", view3dTitle: "3D Außen- und Innenvisualisierung", view3dDesc: "Fotorealistische Darstellung natürlicher Beleuchtung, Möbelplatzierung und räumliche Tiefe.", modNat: "Modern Naturansicht", bookWall: "Bücherregal & Medienwand", elegWhite: "Elegantes weißes Bett", yelWhite: "Gelb & Weiß", modWhite: "Modernes weißes Modul", warmBrown: "Warmes Gelb & Braun", compL: "Kompakte L-Form", costTitle: "Raumweise Innenkostschätzung (INR)", roomItem: "Raum / Artikel", qty: "Menge", unitRate: "Einheitsrate / Bereich", total: "Gesamtkosten (₹)", grandTotal: "Gesamtsumme (Innen)", noteCap: "An maximale Stockwerksbeschränkung für G+ angepasst", costLogic: "* Kostlogik: Wohnzimmer (1.5-4L), Küche (2-5L), Bett (1-3L), Bad (0.8-2L), TV-Wand (50k-1.5L), Decke (120-250/sqft).\n* Stockwerke Limits: G (Max 10L), G+1 (Max 20L), G+2 (Max 35L), G+4 (Max 45L).", moreRef: "Zusätzliche Layout-Referenzen", std2bhk: "Standard 2BHK Layout-Referenz", zoning: "3D-Zonierungskonzept" },
+                chat: { greeting: "Hallo! Ich bin bereit zu assistieren. Ich kann Ihnen helfen bei Standardzimmergrößen, Küchen-Arbeitsdreieck-Logik oder Querlüftungstipps für Ihr", project: "Projekt.", ask: "Fragen nach Standards, z. B. 'Minimale Schlafzimmergröße?'", consultant: "Experte für Vastu, Arbeitsdreieck, Zirkulation & Privatsphäre.", analyzing: "Analysiere architektonische Standards...", masterBed: "Für ein Standard", masterBedDesc: "BHK sollte das Hauptschlafzimmer mindestens 12'x14' (168 sq ft) für die Zirkulation haben. Standard-Schlafzimmer sollten 10'x12' (120 sq ft) haben, um ein Doppelbett mit Nachttischen zu fassen.", kitchenTri: "Das Prinzip des Küchen-Arbeitsdreiecks diktiert, dass die Summe der Distanzen zwischen Spüle, Herd und Kühlschrank zwischen 10' und 25' liegen sollte. Für einen effizienten Arbeitsablauf stellen Sie sicher, dass kein Bein des Dreiecks kürzer als 4' oder länger als 9' ist.", costAdvice: "Basierend auf Ihrer Stockwerkszahl (", costAdviceEnd: "), ist die maximale Baukosten begrenzt. Für Interieurdetails siehe die Registerkarte Kostenschätzung.", generic: "Ich befolge architektonische Standards für Ihr", genericEnd: "Projekt. Ich kann zu Verkehrsflächen (mindestens 3' breit) oder Privatsphären (Öffentlich -> Halbprivat -> Privat) raten. Welches spezifische Element möchten Sie optimieren?", regenMsg: "Neu generieren: Zeigen" },
+                errors: { invalidPlot: "Bitte geben Sie gültige Grundstücksmaße ein.", missingInput: "Eingabe darf nicht leer sein." }
+            },
+            ja: { /* Japanese Placeholders */
+                common: { generate: "生成", regenerate: "再生成", submit: "提出", cancel: "キャンセル", confirm: "確認", delete: "削除", save: "保存", download: "ダウンロード", logout: "ログアウト", login: "ログイン", signup: "サインアップ", welcome: "ようこそ", rendering: "AIがレンダリング中...", welcomeMsg: "お帰りなさい", designSuccess: "設計の生成に成功しました", downloadStarted: "ダウンロードを開始...", planSaved: "プロジェクトをマイプランに保存", planDeleted: "プランを削除", planDuplicated: "プランが複製されました", langChanged: "言語が変更されました", themeChanged: "テーマが変更されました" },
+                navigation: { newProject: "新しいプロジェクト", designs: "デザインとプラン", aiChat: "AIコンサルタント", settings: "設定", theme: "テーマ設定", language: "言語設定", myPlans: "私のプラン" },
+                ui: { projectDetails: "プロジェクト詳細", plotDimensions: "区画のサイズ", plotLen: "区画の長さ (ft)", plotWid: "区画の幅 (ft)", totalArea: "総面積 (sq ft)", bhkConfig: "BHK構成", bedrooms: "寝室 (BHKタイプを選択)", floors: "階数", preferences: "好み", style: "好みのスタイル", budget: "予算範囲 (INR)", themeDesc: "グローバルに適用。ユーザーごと保存。", langDesc: "すべてのUIテキスト + AI応答が変わります。", sortDate: "日付順に並べ替え", sortName: "名前順に並べ替え", newPlan: "新しいプラン", noPlans: "まだプランが保存されていません。", confirmDel: "このプランを削除してもよろしいですか?", enterName: "このプランの新しい名前を入力:", groundFloor: "1階のみ", g1: "G+1 (2階)", g2: "G+2 (3階)", g3: "G+3 (4階)", g4: "G+4 (5階)", eco: "エコノミー (₹20L - ₹40L)", std: "スタンダード (₹40L - ₹80L)", lux: "ラグジュアリー (₹80L+)", modMin: "モダンミニマリスト", scan: "スカンジナビアン", ind: "インダストリアル", luxOpt: "ラグジュアリー" },
+                results: { proposal: "生成された提案:", basedOn: "あなたの", requirements: "要件", blueprint: "ブループリント", view3d: "3Dビュー", interior: "インテリアのアイデア", hall: "リビング / 居間のデザインアイデア", bed: "寝室のデザインアイデア", kitchen: "キッチンのデザインアイデア", cost: "費用見積もり (INR)", ref: "その他の参考", aiBp: "AI生成ブループリント", ai3d: "AI 3Dレンダリング", bpTitle: "技術的なブループリント (建築標準)", bpDesc: "標準的な部屋サイズ、循環経路、壁の厚みを含む詳細な2Dプラン。", view3dTitle: "3D外観と内装ビジュアル化", view3dDesc: "自然光、家具の配置、空間の奥行きを示すフォトレアリスティックなレンダリング。", modNat: "モダンな自然観", bookWall: "本棚とメディアウォール", elegWhite: "エレガントな白いベッド", yelWhite: "黄色と白", modWhite: "モダンな白モジュラ", warmBrown: "暖かい黄色とブラウン", compL: "コンパクトL字型", costTitle: "部屋ごとの内装見積もり (INR)", roomItem: "部屋 / 項目", qty: "数量", unitRate: "単価 / 範囲", total: "総費用 (₹)", grandTotal: "総計 (内装)", noteCap: "G+の最大階数制限に調整済み", costLogic: "* 費用論理: リビング (1.5-4L)、キッチン (2-5L)、ベッド (1-3L)、バス (0.8-2L)、テレビ壁 (50k-1.5L)、天井 (120-250/sqft)。\n* 階数の上限: G (最大10L)、G+1 (最大20L)、G+2 (最大35L)、G+4 (最大45L)。", moreRef: "追加のレイアウト参考", std2bhk: "標準的な2BHKレイアウト参考", zoning: "3Dゾーニング概念" },
+                chat: { greeting: "こんにちは！サポートさせていただきます。標準的な部屋サイズ、キッチンのワークトライアングルロジック、または貴方の", project: "プロジェクト。", ask: "基準について尋ねてください。例：「最小寝室のサイズ」", consultant: "ヴァーストゥ、ワークトライアングル、循環およびプライバシーの専門家。", analyzing: "建築基準を分析中...", masterBed: "標準的な", masterBedDesc: "BHKの場合、マスターベッドルームは循環のために少なくとも12'x14'（168 sq ft）である必要があります。標準寝室はダブルベッドとサイドテーブルを収容するために10'x12'（120 sq ft）である必要があります。", kitchenTri: "キッチンワークトライアングルの原則に従い、シンク、コンロ、冷蔵庫間の距離の合計が10'から25'になる必要があります。効率的なワークフローのために、三角形のどの辺も4'未満または9'を超えないようにしてください。", costAdvice: "あなたの階数 (", costAdviceEnd: ") に基づいて、最大建設費が制限されています。内装の詳細については、費用見積もりタブを参照してください。", generic: "私はあなたの", genericEnd: "プロジェクトの建築基準に従っています。循環空間（最小幅3'）やプライバシーゾーニング（パブリック -> セミプライベート -> プライベート）についてアドバイスを提供できます。どの要素を最適化しますか？", regenMsg: "再生成: 表示" },
+                errors: { invalidPlot: "有効な敷地寸法を入力してください。", missingInput: "入力を空にすることはできません。" }
+            }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let appState = {
+            lang: localStorage.getItem('decorMindLang') || 'en',
+            theme: localStorage.getItem('decorMindTheme') || 'light',
+            project: {
+                name: '',
+                bhk: 2,
+                floors: 1,
+                style: 'Modern Minimalist',
+                length: 0,
+                width: 0,
+                area: 0
+            }
+        };
+
+        let savedPlans = JSON.parse(localStorage.getItem('decorMindPlans')) || [];
+
+        // --- CORE TRANSLATION FUNCTION ---
+        function t(key) {
+            // Fallback to English if key missing
+            const lang = appState.lang;
+            const dict = translations[lang] || translations['en'];
+            // Simple dot notation support e.g., 'results.bpTitle'
+            const keys = key.split('.');
+            let value = dict;
+            keys.forEach(k => {
+                if(value) value = value[k];
+            });
+            return value !== undefined ? value : key;
+        }
+
+        // --- INITIALIZATION ---
+        function initApp() {
+            applyTheme(appState.theme);
+            applyLanguage(appState.lang);
+            renderSavedPlans();
+        }
+
+        // --- UI UPDATE FUNCTIONS ---
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('decorMindTheme', theme);
+            // UI Updates
+            const lightMode = t('ui.lightMode'); // Simplified logic assuming keys exist or handled in switch
+            const darkMode = t('ui.darkMode');
+            
+            document.getElementById('txt-light-mode').innerText = t('ui.lightMode');
+            document.getElementById('txt-dark-mode').innerText = t('ui.darkMode');
+            
+            // Active State Logic
+            if(theme === 'light') {
+                document.getElementById('opt-light').classList.add('active');
+                document.getElementById('opt-dark').classList.remove('active');
+            } else {
+                document.getElementById('opt-light').classList.remove('active');
+                document.getElementById('opt-dark').classList.add('active');
+            }
+        }
+
+        function setTheme(theme) {
+            applyTheme(theme);
+            showToast(t('common.themeChanged'), 'success');
+        }
+
+        function applyLanguage(lang) {
+            localStorage.setItem('decorMindLang', lang);
+            appState.lang = lang;
+            
+            // Update Titles
+            document.getElementById('login-subtitle').innerText = t('common.subtitle');
+            document.getElementById('nav-new-project').innerText = t('navigation.newProject');
+            document.getElementById('nav-designs').innerText = t('navigation.designs');
+            document.getElementById('nav-chat').innerText = t('navigation.aiChat');
+            document.getElementById('nav-settings').innerText = t('navigation.settings');
+            
+            // Sidebar Labels
+            document.getElementById('lbl-theme').innerText = t('navigation.theme');
+            document.getElementById('txt-theme-desc').innerText = t('ui.themeDesc');
+            document.getElementById('lbl-lang').innerText = t('navigation.language');
+            document.getElementById('txt-lang-desc').innerText = t('ui.langDesc');
+            document.getElementById('lbl-myplans').innerText = t('navigation.myPlans');
+            
+            // Sort Options
+            document.getElementById('opt-sdate').innerText = t('ui.sortDate');
+            document.getElementById('opt-sname').innerText = t('ui.sortName');
+            document.getElementById('btn-newplan').innerText = t('ui.newPlan');
+            document.getElementById('msg-no-plans').innerText = t('ui.noPlans');
+
+            // Form Labels
+            document.getElementById('title-project-details').innerText = t('ui.projectDetails');
+            document.getElementById('sec-title-dim').innerText = t('ui.plotDimensions');
+            document.getElementById('lbl-plot-len').innerText = t('ui.plotLen');
+            document.getElementById('lbl-plot-wid').innerText = t('ui.plotWid');
+            document.getElementById('lbl-area').innerText = t('ui.totalArea');
+            document.getElementById('sec-title-bhk').innerText = t('ui.bhkConfig');
+            document.getElementById('lbl-bhk').innerText = t('ui.bedrooms');
+            document.getElementById('lbl-floors').innerText = t('ui.floors');
+            document.getElementById('sec-title-pref').innerText = t('ui.preferences');
+            document.getElementById('lbl-style').innerText = t('ui.style');
+            document.getElementById('lbl-budget').innerText = t('ui.budget');
+            document.getElementById('btn-logout').innerText = t('common.logout');
+            document.getElementById('btn-generate').innerText = t('common.generate');
+
+            // Floor Options
+            document.getElementById('opt-g0').innerText = t('ui.groundFloor');
+            document.getElementById('opt-g1').innerText = t('ui.g1');
+            document.getElementById('opt-g2').innerText = t('ui.g2');
+            document.getElementById('opt-g3').innerText = t('ui.g3');
+            document.getElementById('opt-g4').innerText = t('ui.g4');
+
+            // Style Options
+            document.getElementById('opt-min').innerText = t('ui.modMin');
+            document.getElementById('opt-scan').innerText = t('ui.scan');
+            document.getElementById('opt-ind').innerText = t('ui.ind');
+            document.getElementById('opt-lux').innerText = t('ui.luxOpt');
+
+            // Budget Options
+            document.getElementById('opt-eco').innerText = t('ui.eco');
+            document.getElementById('opt-std').innerText = t('ui.std');
+            document.getElementById('opt-lux').innerText = t('ui.lux');
+
+            // Results Header
+            document.getElementById('result-style-input').innerText = t('results.requirements');
+            document.getElementById('btn-regen').innerText = t('common.regenerate');
+            document.getElementById('btn-save').innerText = t('common.save');
+            document.getElementById('btn-dl').innerText = t('common.download');
+
+            // Tab Labels
+            document.getElementById('tab-blueprint-btn').innerText = t('results.blueprint');
+            document.getElementById('tab-3d-btn').innerText = t('results.view3d');
+            document.getElementById('tab-interior-btn').innerText = t('results.interior');
+            document.getElementById('tab-cost-btn').innerText = t('results.cost');
+            document.getElementById('tab-ref-btn').innerText = t('results.ref');
+
+            // Interior & Results Labels
+            document.getElementById('lbl-hall').innerText = t('results.hall');
+            document.getElementById('lbl-bed').innerText = t('results.bed');
+            document('lbl-kitchen').innerText = t('results.kitchen');
+            document.getElementById('lbl-more-ref').innerText = t('results.moreRef');
+            
+            // Cards
+            document.getElementById('txt-blueprint-title').innerText = t('results.bpTitle');
+            document.getElementById('blueprint-desc').innerText = t('results.bpDesc');
+            document.getElementById('txt-3d-title').innerText = t('results.view3dTitle');
+            document.getElementById('txt-3d-desc').innerText = t('results.view3dDesc');
+            
+            document.getElementById('txt-mod-nat').innerText = t('results.modNat');
+            document.getElementById('txt-book-wall').innerText = t('results.bookWall');
+            document.getElementById('txt-eleg-white').innerText = t('results.elegWhite');
+            document('txt-yel-white').innerText = t('results.yelWhite');
+            document.getElementById('txt-mod-white').innerText = t('results.modWhite');
+            document.getElementById('txt-warm-brown').innerText = t('results.warmBrown');
+            document.getElementById('txt-comp-l').innerText = t('results.compL');
+
+            // Cost Table
+            document.getElementById('lbl-cost-est').innerText = t('results.costTitle');
+            document.getElementById('tbl-h-item').innerText = t('results.roomItem');
+            document.getElementById('tbl-h-qty').innerText = t('results.qty');
+            document.getElementById('tbl-h-rate').innerText = t('results.unitRate');
+            document.getElementById('tbl-h-total').innerText = t('results.total');
+            document.getElementById('tbl-f-grandtotal').innerText = t('results.grandTotal');
+            document.getElementById('txt-cost-logic').innerText = t('results.costLogic');
+
+            // Chat
+            document.getElementById('txt-chat-sub').innerText = t('chat.consultant');
+            document.getElementById('chat-greeting').innerHTML = `${t('chat.greeting')} ${t('chat.project')}`;
+            document.getElementById('chat-ask').placeholder = t('chat.ask');
+
+            // Settings UI
+            document.getElementById('btn-en').innerText = 'English';
+            document.getElementById('btn-hi').innerText = 'Hindi';
+            document.getElementById('btn-te').innerText = 'Telugu';
+            document.getElementById('btn-de').innerText = 'German';
+            document.getElementById('btn-ja').innerText = 'Japanese';
+
+            // Update Active Button
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + lang).classList.add('active');
+        }
+
+        function setLanguage(lang) {
+            applyLanguage(lang);
+            showToast(t('common.langChanged'), 'success');
+        }
+
+        // --- NAVIGATION LOGIC ---
+        function switchView(viewId) {
+            document.querySelectorAll('main .content-scroll > section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+
+            const titles = {
+                'view-input': t('navigation.newProject'),
+                'view-results': t('navigation.designs'),
+                'view-chat': t('navigation.aiChat'),
+                'view-settings': t('navigation.settings')
+            };
+            document.getElementById('page-title').innerText = titles[viewId] || 'Dashboard';
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const navs = document.querySelectorAll('.nav-item');
+            if(viewId === 'view-input') navs[0].classList.add('active');
+            if(viewId === 'view-results') navs[1].classList.add('active');
+            if(viewId === 'view-chat') navs[2].classList.add('active');
+            if(viewId === 'view-settings') navs[3].classList.add('active');
+        }
+
+        function switchResultTab(tabId) {
+            document.querySelectorAll('.result-tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+        }
+
+        // --- LOGIN LOGIC ---
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('login-name').value;
+            const email = document.getElementById('login-email').value;
+
+            appState.project.name = name;
+            appState.project.email = email;
+
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('user-avatar').innerText = name.charAt(0).toUpperCase();
+
+            const btn = document.getElementById('btn-login');
+            btn.innerText = "Authenticating...";
+            btn.disabled = true;
+
+            setTimeout(() => {
+                document.getElementById('view-login').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                showToast(`${t('common.welcomeMsg')}, ${name}!`, 'success');
+            }, 1000);
+        });
+
+        // --- INPUT FORM LOGIC ---
+        function calculateArea() {
+            const l = parseFloat(document.getElementById('plot-length').value) || 0;
+            const w = parseFloat(document.getElementById('plot-width').value) || 0;
+            const area = l * w;
+            document.getElementById('total-area').value = area > 0 ? area : '';
+            return area;
+        }
+        document.getElementById('plot-length').addEventListener('input', calculateArea);
+        document.getElementById('plot-width').addEventListener('input', calculateArea);
+
+        document.getElementById('project-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const area = calculateArea();
+            if (area <= 0) {
+                showToast(t('errors.invalidPlot'), "error");
+                return;
+            }
+
+            // Update Global State
+            appState.project = {
+                ...appState.project,
+                length: parseFloat(document.getElementById('plot-length').value),
+                width: parseFloat(document.getElementById('plot-width').value),
+                area: area,
+                bhk: parseInt(document.getElementById('req-bed').value),
+                style: document.getElementById('pref-style').value,
+                floors: document.getElementById('num-floors').value
+            };
+
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+                generateResults();
+                switchView('view-results');
+                showToast(t('common.designSuccess'), "success");
+            }, 1500);
+        });
+
+        // --- IMAGE ASSETS ---
+        const imageAssets = {
+            blueprints: {
+                1: "https://z-cdn-media.chatglm.cn/files/5e2c3ab2-8df6-41d0-8562-49206b4c7400.png?auth_key=1870746400-046e7ffd63ff435aa96f6b74c547646f-0-619dfbc6608201282a971fae83f8488b",
+                2: "https://z-cdn-media.chatglm.cn/files/b2d36f55-0209-4c16-a47f-54af7b7089a8.png?auth_key=1870746400-046e7ffd63ff435aa96f6b74c547646f-0-619dfbc6608201282a971fae83f8488b",
+                3: "https://z-cdn-media.chatglm.cn/files/75744d48-2561-4559-be24-8737decb2c86.png?auth_key=1870746400-93f24808a0124ab186745bcb3dd0852e-0-acbfbbfeca549054e07bfa5d26380ef7",
+                4: "https://z-cdn-media.chatglm.cn/files/a809c560-3305-4c29-b450-012ac598e0ef.png?auth_key=1870746400-d2bf6ab3caee46d583e4e943a8499f1-0-769cfc37b12c18402296a77692f0f501"
+            },
+            renders3d: {
+                1: "https://z-cdn-media.chatglm.cn/files/701c80c5-8eaf-4368-8780-cf91c3eadb6e.png?auth_key=1870739387-f3569ff4fc934a53a1c2cc6b1cb19ec0-0-144e27b7970f0af60ed691b216f4ddf6",
+                2: "https://z-cdn-media.chatglm.cn/files/6f73dcdd-672a-44fe-9b31-83bb053a0770.jpeg?auth_key=1870744779-19b4ba1fbd654d46b44aa76b46d796c7-0-1995f33bfb899b6a31a9d842e848fdc0",
+                3: "https://z-cdn-media.chatglm.cn/files/590ff4c3-6856-4623-bd6f-46999c876d7f.jpeg?auth_key=1870744779-a5c4facb5f3c4b3782bf1c1375d865c1-0-dbd98569a3f7c6cd855580149c9c9b96",
+                4: "https://z-cdn-media.chatglm.cn/files/5a097575-517c-45a9-bef7-6e0c5e2acffc.jpeg?auth_key=1870744779-81186ea1aa0a4c599df75be594cf28c9-0-413a95c83003caf64eca28ea0f06f31d"
+            }
+        };
+
+        // --- GENERATION RESULTS ---
+        function generateResults() {
+            const bhk = appState.project.bhk;
+            const safeBHK = bhk > 4 ? 4 : bhk;
+
+            // Update UI text based on language
+            document.getElementById('header-bhk').innerText = bhk + " BHK";
+            document.getElementById('chat-bhk-context').innerText = bhk + " BHK";
+
+            document.getElementById('img-blueprint').src = imageAssets.blueprints[safeBHK];
+            document.getElementById('img-3d').src = imageAssets.renders3d[safeBHK];
+
+            generateCostEstimation();
+        }
+
+        function regenerateDesign() {
+            let currentBHK = appState.project.bhk;
+            let nextBHK = currentBHK + 1;
+            if(nextBHK > 4) nextBHK = 1;
+
+            appState.project.bhk = nextBHK;
+            document.getElementById('req-bed').value = nextBHK;
+
+            showToast(`${t('chat.regenMsg')} ${nextBHK}BHK Reference`, 'info');
+            generateResults(); 
+        }
+
+        function downloadCurrentImage(type) {
+            let url = "";
+            if(type === 'blueprint') url = document.getElementById('img-blueprint').src;
+            else if(type === '3d') url = document.getElementById('img-3d').src;
+
+            downloadImage(url);
+        }
+
+        function downloadImage(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `DecorMind-${appState.project.bhk}BHK-Design.jpg`;
+            a.target = '_blank'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast(t('common.downloadStarted'), "success");
+        }
+
+        // --- COST ESTIMATION (ROOM-WISE & FLOOR CAPS) ---
+        function generateCostEstimation() {
+            const tbody = document.getElementById('cost-table-body');
+            tbody.innerHTML = '';
+
+            const bhk = appState.project.bhk;
+            const floors = parseInt(appState.project.floors); 
+            const area = appState.project.area;
+
+            const getRandomCost = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+
+            // 1. Room-wise Calculation
+            let costLiving = getRandomCost(150000, 400000);
+            let costKitchen = getRandomCost(200000, 500000);
+            let costPerBed = getRandomCost(100000, 300000);
+            let costPerBath = getRandomCost(80000, 200000);
+            let costTV = getRandomCost(50000, 150000);
+            let rateCeiling = getRandomCost(120, 250);
+            let totalCeilingArea = area * floors;
+            let costCeiling = totalCeilingArea * rateCeiling;
+
+            let totalEstimated = costLiving + costKitchen + 
+                              (bhk * costPerBed) + (bhk * costPerBath) + 
+                              costTV + costCeiling;
+
+            // Populate Rows
+            const rows = [
+                { name: t('results.hall'), qty: 1, unit: "Lumpsum", cost: costLiving },
+                { name: t('results.kitchen'), qty: 1, unit: "Lumpsum", cost: costKitchen },
+                { name: t('results.bed'), qty: bhk, unit: "Lumpsum", cost: bhk * costPerBed },
+                { name: "Bathroom(s)", qty: bhk, unit: "Lumpsum", cost: bhk * costPerBath },
+                { name: "TV Wall Unit", qty: 1, unit: "Lumpsum", cost: costTV },
+                { name: "False Ceiling (All Floors)", qty: totalCeilingArea.toFixed(0) + " sqft", unit: `₹${rateCeiling}/sqft`, cost: costCeiling }
+            ];
+
+            rows.forEach(row => {
+                const tr = `
+                    <tr>
+                        <td>${row.name}</td>
+                        <td>${row.qty}</td>
+                        <td>${row.unit}</td>
+                        <td>₹${row.cost.toLocaleString('en-IN')}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += tr;
+            });
+
+            // 2. Apply Floor Cap Logic
+            let maxCap = 0;
+            
+            if (floors === 1) { maxCap = 10000000; }       
+            else if (floors === 2) { maxCap = 20000000; }    
+            else if (floors === 3) { maxCap = 35000000; }    
+            else { maxCap = 45000000; }                       
+
+            let finalTotal = totalEstimated;
+            const capRow = document.getElementById('floor-cap-row');
+
+            if (totalEstimated > maxCap) {
+                finalTotal = maxCap;
+                capRow.classList.remove('hidden');
+                document.getElementById('floor-count-display').innerText = (floors - 1);
+            } else {
+                capRow.classList.add('hidden');
+            }
+
+            document.getElementById('grand-total').innerText = "₹" + finalTotal.toLocaleString('en-IN');
+        }
+
+        // --- MY PLANS MODULE ---
+        function saveCurrentPlan() {
+            if(!appState.project.area) return;
+
+            const newPlan = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                ...appState.project,
+                blueprintImg: document.getElementById('img-blueprint').src,
+                render3dImg: document.getElementById('img-3d').src
+            };
+
+            savedPlans.push(newPlan);
+            localStorage.setItem('decorMindPlans', JSON.stringify(savedPlans));
+            showToast(t('common.planSaved'), "success");
+            renderSavedPlans();
+        }
+
+        function renderSavedPlans() {
+            const container = document.getElementById('plans-list-container');
+            const sortType = document.getElementById('sort-plans').value;
+            
+            if(savedPlans.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 50px;">${t('ui.noPlans')}</div>`;
+                return;
+            }
+
+            if(sortType === 'date') {
+                savedPlans.sort((a,b) => b.id - a.id);
+            } else {
+                savedPlans.sort((a,b) => a.style.localeCompare(b.style));
+            }
+
+            let html = '';
+            savedPlans.forEach(plan => {
+                html += `
+                    <div class="plan-card">
+                        <img src="${plan.blueprintImg}" class="plan-thumb" alt="Plan">
+                        <div class="plan-details">
+                            <h4>${plan.bhk} BHK - ${plan.style}</h4>
+                            <p>${plan.date}</p>
+                            <p>${plan.length}x${plan.width} ft</p>
+                        </div>
+                        <div class="plan-actions">
+                            <button class="plan-action-btn" onclick="loadPlan(${plan.id})" title="Open">👁️</button>
+                            <button class="plan-action-btn" onclick="duplicatePlan(${plan.id})" title="Duplicate">📄</button>
+                            <button class="plan-action-btn" onclick="renamePlan(${plan.id})" title="Rename">✏️</button>
+                            <button class="plan-action-btn delete" onclick="confirmDelete(${plan.id})" title="Delete">🗑️</button>
+                            <button class="plan-action-btn" onclick="downloadImage('${plan.blueprintImg}')" title="Download">⬇</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function loadPlan(id) {
+            const plan = savedPlans.find(p => p.id === id);
+            if(plan) {
+                appState.project = plan; // Restore state
+                
+                // Restore Input Form
+                document.getElementById('plot-length').value = plan.length;
+                document.getElementById('plot-width').value = plan.width;
+                calculateArea();
+                document.getElementById('req-bed').value = plan.bhk;
+                document.getElementById('num-floors').value = plan.floors;
+                document.getElementById('pref-style').value = plan.style;
+
+                generateResults();
+                switchView('view-results');
+            }
+        }
+
+        function duplicatePlan(id) {
+            const original = savedPlans.find(p => p.id === id);
+            if(original) {
+                const copy = {...original, id: Date.now(), date: new Date().toLocaleString()};
+                savedPlans.push(copy);
+                localStorage.setItem('decorMindPlans', JSON.stringify(savedPlans));
+                renderSavedPlans();
+                showToast(t('common.planDuplicated'), "success");
+            }
+        }
+
+        function renamePlan(id) {
+            const newName = prompt(t('ui.enterName'));
+            if(newName) {
+                const planIndex = savedPlans.findIndex(p => p.id === id);
+                if(planIndex > -1) {
+                    savedPlans[planIndex].style = newName; // Using style field as Name
+                    localStorage.setItem('decorMindPlans', JSON.stringify(savedPlans));
+                    renderSavedPlans();
+                }
+            }
+        }
+
+        function confirmDelete(id) {
+            showModal(t('ui.confirmDel'), () => {
+                savedPlans = savedPlans.filter(p => p.id !== id);
+                localStorage.setItem('decorMindPlans', JSON.stringify(savedPlans));
+                renderSavedPlans();
+                showToast(t('common.planDeleted'), "success");
+            });
+        }
+
+        // --- MODAL LOGIC ---
+        let activeModalCallback = null;
+
+        function showModal(message, callback) {
+            document.getElementById('modal-msg').innerText = message;
+            document.getElementById('modal-container').classList.remove('hidden');
+            activeModalCallback = callback;
+            document.getElementById('modal-confirm').onclick = () => {
+                if(activeModalCallback) activeModalCallback();
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+            activeModalCallback = null;
+        }
+        document.getElementById('modal-cancel').onclick = closeModal;
+
+
+        // --- AI CHAT LOGIC ---
+        const chatInput = document.getElementById('chat-input-field');
+        const messagesContainer = document.getElementById('chat-messages');
+
+        chatInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            chatInput.value = '';
+
+            const loadingId = 'loading-' + Date.now();
+            const loadingMsg = `<div class="message ai" id="${loadingId}">${t('chat.analyzing')}</div>`;
+            messagesContainer.insertAdjacentHTML('beforeend', loadingMsg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            setTimeout(() => {
+                const loader = document.getElementById(loadingId);
+                if(loader) loader.remove();
+
+                let response = "";
+                const lowerText = text.toLowerCase();
+                const bhk = appState.project.bhk;
+
+                if (lowerText.includes('bedroom') && (lowerText.includes('size') || lowerText.includes('dimension'))) {
+                    response = `${t('chat.masterBed')} ${bhk}${t('chat.masterBedDesc')}`;
+                } 
+                else if (lowerText.includes('kitchen') && (lowerText.includes('triangle') || lowerText.includes('layout'))) {
+                    response = t('chat.kitchenTri');
+                }
+                else if (lowerText.includes('cost') || lowerText.includes('price')) {
+                    response = `${t('chat.costAdvice')}${appState.project.floors}${t('chat.costAdviceEnd')}`;
+                }
+                else {
+                    response = `${t('chat.generic')} ${bhk} ${t('chat.genericEnd')}`;
+                }
+
+                appendMessage(response, 'ai');
+            }, 1000);
+        }
+
+        function appendMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerText = text;
+            messagesContainer.appendChild(div);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Run Init
+        window.onload = initApp;
+    </script>
+</body>
+</html>
