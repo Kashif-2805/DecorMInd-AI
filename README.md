@@ -7,7 +7,6 @@ DecorMind AI is an intelligent house planning and interior design web applicatio
 ## 🚀 Features
 
 - 🏗 AI House Planning (2D + 3D Layouts)
-- 📊 Graph & Area Analytics
 - 💰 Construction Cost Estimation
 - 🎨 AI Interior Design Generator
 - 🌙 Light & Dark Theme
